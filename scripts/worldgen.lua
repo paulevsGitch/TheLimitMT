@@ -256,12 +256,8 @@ local function fill_terrain(emin, emax)
 		local z = math.floor(index_dec / array_side_dz)
 		if z < 15 or z > side_max then goto surface_fill_end end
 		
-		local wy = y + emin.y
 		if node_data[index + array_side_dy] == AIR_ID then
 			node_data[index] = HYPHUM_ID
-			if math.random() < 0.1 then
-				node_data[index + array_side_dy] = GUTTARBA_ID
-			end
 		end
 		
 		::surface_fill_end::
@@ -292,6 +288,36 @@ local function fill_terrain(emin, emax)
 			if node_data[index] == HYPHUM_ID then
 				place_index = index + array_side_dy
 				thelimit.trees.stellata_small(get_node, set_node)
+				goto population_end
+			end
+		end
+		::population_end::
+	end
+
+	for i = 1, 100 do
+		local px = math.floor(16 + math.random() * max_rand)
+		local pz = math.floor(16 + math.random() * max_rand)
+		local i_xz = px + pz * array_side_dz
+		for py = max_rand + 16, 16, -1 do
+			local index = i_xz + py * array_side_dy
+			if node_data[index] == HYPHUM_ID then
+				place_index = index + array_side_dy
+				thelimit.plants.guttarba(get_node, set_node)
+				goto population_end
+			end
+		end
+		::population_end::
+	end
+
+	for i = 1, 50 do
+		local px = math.floor(16 + math.random() * max_rand)
+		local pz = math.floor(16 + math.random() * max_rand)
+		local i_xz = px + pz * array_side_dz
+		for py = max_rand + 16, 16, -1 do
+			local index = i_xz + py * array_side_dy
+			if node_data[index] == HYPHUM_ID then
+				place_index = index + array_side_dy
+				thelimit.plants.lucinus(get_node, set_node)
 				goto population_end
 			end
 		end

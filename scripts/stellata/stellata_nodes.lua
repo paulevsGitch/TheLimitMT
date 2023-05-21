@@ -27,14 +27,8 @@ local function place_stem(itemstack, placer, pointed_thing)
 	local dz = above.z - under.z
 	
 	local param2 = 0
-	local axis = "v"
-	if dx ~= 0 then
-		param2 = 12
-		axis = "h"
-	elseif dz ~= 0 then
-		param2 = 4
-		axis = "h"
-	end
+	if dx ~= 0 then param2 = 12
+	elseif dz ~= 0 then param2 = 4 end
 	
 	local node_name = itemstack:get_name()
 	itemstack:set_name("thelimit:stellata_stem_" .. math.floor(math.random() * 2 + 1))

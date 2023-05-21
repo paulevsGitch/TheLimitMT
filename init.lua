@@ -24,6 +24,7 @@ thelimit.is_in_dimension = function(player)
 end
 
 thelimit.trees = {}
+thelimit.plants = {}
 
 thelimit.can_replace = function(node_id)
 	local node_name = minetest.get_name_from_content_id(node_id)
@@ -33,14 +34,23 @@ end
 
 dofile(path .. "/scripts/connected_textures.lua")
 dofile(path .. "/scripts/emissive_textures.lua")
+
 dofile(path .. "/scripts/pillars.lua")
 dofile(path .. "/scripts/stairs.lua")
 dofile(path .. "/scripts/nodes.lua")
-dofile(path .. "/scripts/stellata.lua")
 dofile(path .. "/scripts/stones.lua")
 dofile(path .. "/scripts/metals.lua")
 
-dofile(path .. "/scripts/features/stellata_tree.lua")
+dofile(path .. "/scripts/scatter.lua")
+
+dofile(path .. "/scripts/stellata/stellata_nodes.lua")
+dofile(path .. "/scripts/stellata/stellata_tree.lua")
+
+dofile(path .. "/scripts/guttarba/guttarba_nodes.lua")
+dofile(path .. "/scripts/guttarba/guttarba_scatter.lua")
+
+dofile(path .. "/scripts/lucinus/lucinus_nodes.lua")
+dofile(path .. "/scripts/lucinus/lucinus_scatter.lua")
 
 dofile(path .. "/scripts/biomes.lua")
 dofile(path .. "/scripts/worldgen.lua")
