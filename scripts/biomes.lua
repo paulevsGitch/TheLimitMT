@@ -26,12 +26,11 @@ minetest.register_biome({
 
 minetest.register_on_mods_loaded(function()
 	local biomes = table.copy(minetest.registered_biomes)
-	minetest.clear_registered_biomes()
-	
 	for name, biome in pairs(biomes) do
 		if name ~= "thelimit" and (not biome.y_max or biome.y_max > BIOME_MAX) then
+            minetest.unregister_biome(name)
 			biome.y_max = BIOME_MAX
+            minetest.register_biome(biome)
 		end
-		minetest.register_biome(biome)
 	end
 end)

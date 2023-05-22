@@ -25,8 +25,52 @@ local SKY = {
 	clouds = false
 }
 
+local BIOME_PARTICLES = {
+	size = 4,
+	collisiondetection = true,
+	collision_removal = false,
+	object_collision = false,
+	vertical = false,
+	texture = {
+		name = "thelimit_yellow_particle.png",
+		blend = "screen",
+		scale_tween = {
+			style = "pulse",
+			0, 1
+		}
+	},
+	glow = 100,
+	pos = {
+		min = {x = -50, y = -50, z = -50},
+		max = {x =  50, y =  50, z =  50}
+	},
+	jitter = {
+		min = {x = -1, y = -1, z = -1},
+		max = {x =  1, y =  1, z =  1}
+	},
+	vel = {
+		min = {x = -1, y = -1, z = -1},
+		max = {x =  1, y =  1, z =  1}
+	},
+	exptime = {min = 5, max = 10},
+	amount = 100,
+	time = 0
+}
+
 local players_sky = {}
 local update_delta = 0
+
+local function on_dimension_set(player)
+	player:set_sky(SKY)
+	player:set_sun(INVISIBLE)
+	player:set_moon(INVISIBLE)
+	player:set_stars(STARS)
+	BIOME_PARTICLES.attached = player
+	local id = minetest.add_particlespawner(BIOME_PARTICLES)
+	players_sky[player] = {
+		particles = id
+	}
+end
 
 minetest.register_globalstep(function(dtime)
 	update_delta = update_delta + dtime
@@ -35,17 +79,16 @@ minetest.register_globalstep(function(dtime)
 	
 	for _, player in pairs(minetest.get_connected_players()) do
 		local is_in_dim = thelimit.is_in_dimension(player)
+
 		if is_in_dim and not players_sky[player] then
-			player:set_sky(SKY)
-			player:set_sun(INVISIBLE)
-			player:set_moon(INVISIBLE)
-			player:set_stars(STARS)
-			players_sky[player] = 1
+			on_dimension_set(player)
 		elseif not is_in_dim and players_sky[player] then
 			player:set_sky()
 			player:set_sun()
 			player:set_moon()
 			player:set_stars()
+			local data = players_sky[player]
+			minetest.delete_particlespawner(data.particles, player)
 			players_sky[player] = nil
 		end
 	end
@@ -53,10 +96,6 @@ end)
 
 minetest.register_on_joinplayer(function(player, last_login)
 	if thelimit.is_in_dimension(player) then
-		player:set_sky(SKY)
-		player:set_sun(INVISIBLE)
-		player:set_moon(INVISIBLE)
-		player:set_stars(STARS)
-		players_sky[player] = 1
+		on_dimension_set(player)
 	end
 end)
