@@ -116,9 +116,17 @@ end
 thelimit.trees.stellata = function(get_node, set_node)
 	local pos = {x = 0, y = 0, z = 0}
 	local height = math.floor(math.random() * 4 + 8)
+	for i = 1, height + 3, 2 do
+		pos.y = i
+		if get_node(pos) ~= minetest.CONTENT_AIR then
+			goto place_end
+		end
+	end
+	pos.y = 0
 	height = makeTrunk(pos, height, get_node, set_node)
 	makeRoots(pos, height, get_node, set_node)
 	makeBranches(pos, height, get_node, set_node)
+	::place_end::
 end
 
 thelimit.trees.stellata_small = function(get_node, set_node)

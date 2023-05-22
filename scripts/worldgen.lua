@@ -366,10 +366,10 @@ local function fill_terrain(emin, emax)
 			if node_data[index] == HYPHUM_ID then
 				place_index = index + array_side_dy
 				thelimit.trees.stellata(get_node, set_node)
-				goto stellata_break
+				--goto stellata_break
 			end
 		end
-		::stellata_break::
+		--::stellata_break::
 	end
 	
 	for i = 1, 50 do
@@ -381,10 +381,10 @@ local function fill_terrain(emin, emax)
 			if node_data[index] == HYPHUM_ID then
 				place_index = index + array_side_dy
 				thelimit.trees.stellata_small(get_node, set_node)
-				goto stel_small_break
+				--goto stel_small_break
 			end
 		end
-		::stel_small_break::
+		--::stel_small_break::
 	end
 
 	for i = 1, 100 do
@@ -396,10 +396,10 @@ local function fill_terrain(emin, emax)
 			if node_data[index] == HYPHUM_ID then
 				place_index = index + array_side_dy
 				thelimit.plants.guttarba(get_node, set_node)
-				goto guttarba_break
+				--goto guttarba_break
 			end
 		end
-		::guttarba_break::
+		--::guttarba_break::
 	end
 
 	for i = 1, 50 do
@@ -411,10 +411,10 @@ local function fill_terrain(emin, emax)
 			if node_data[index] == HYPHUM_ID then
 				place_index = index + array_side_dy
 				thelimit.plants.lucinus(get_node, set_node)
-				goto lucinus_break
+				--goto lucinus_break
 			end
 		end
-		::lucinus_break::
+		--::lucinus_break::
 	end
 
 	for i = 1, 500 do

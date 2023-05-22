@@ -7,6 +7,7 @@ minetest.register_node("thelimit:stellata_flower", {
 	tiles = {"thelimit_stellata_stem_flower.png", "thelimit_stellata_petals_top.png", "thelimit_stellata_petals_side.png"},
 	groups = {snappy = 3, flora = 1, attached_node = 1, flammable = 1, thelimit_stellata_connect = 1},
 	sounds = default.node_sound_wood_defaults(),
+	connect_sides = {"bottom"},
 	sunlight_propagates = true,
 	paramtype = "light",
 	light_source = 14,
