@@ -29,6 +29,50 @@ local function get_voronoi(seed, x, y)
 	return min
 end
 
+--local function get_voronoi_islands(seed, x, y, z)
+--	local ix = math.floor(x)
+--	local iy = math.floor(y)
+--	local iz = math.floor(z)
+--
+--	local sdx = x - ix
+--	local sdy = y - iy
+--	local sdz = z - iz
+--
+--	local distance, dx, dy, dz
+--	local min = 10000
+--	
+--	for i = -1, 1 do
+--		for j = -1, 1 do
+--			for k = -1, 1 do
+--				math.randomseed((ix + i) * 1000000 + (iz + k) * 1000 + (iy + j) + seed)
+--
+--				dx = math.random() + i - sdx
+--				dy = math.random() + j - sdy
+--				dz = math.random() + k - sdz
+--
+--				if dy < 0 then
+--					dy = dy * 3
+--					distance = math.sqrt(dx * dx + dy * dy + dz * dz)
+--				else
+--					distance = math.sqrt(dx * dx + dz * dz) + dy * 0.5
+--				end
+--
+--				distance = distance * (math.random() + 1)
+--				
+--				--if dy < 0 then dy = dy * 3 end
+--
+--				--local distance = math.sqrt(dx * dx + dy * dy + dz * dz)
+--				
+--				if distance < min then
+--					min = distance
+--				end
+--			end
+--		end
+--	end
+--	
+--	return min
+--end
+
 local function make_island_layer(height, distance, coverage)
 	local voronoi_seed = math.floor(math.random() * 65536)
 	return {
@@ -110,6 +154,43 @@ local function get_layer_density(layer, x, y, z)
 	return density
 end
 
+--math.randomseed(WORLD_SEED)
+--
+--local DISTORT_X_NOISE = PerlinNoise({
+--	offset = 0,
+--	scale = 1,
+--	spread = {x = 100, y = 100, z = 100},
+--	seed = math.floor(math.random() * 65536),
+--	octaves = 2,
+--	persistence = 0.5,
+--	lacunarity = 2.0,
+--	flags = "defaults"
+--})
+--
+--local DISTORT_Y_NOISE = PerlinNoise({
+--	offset = 0,
+--	scale = 1,
+--	spread = {x = 100, y = 100, z = 100},
+--	seed = math.floor(math.random() * 65536),
+--	octaves = 2,
+--	persistence = 0.5,
+--	lacunarity = 2.0,
+--	flags = "defaults"
+--})
+--
+--local DISTORT_Z_NOISE = PerlinNoise({
+--	offset = 0,
+--	scale = 1,
+--	spread = {x = 100, y = 100, z = 100},
+--	seed = math.floor(math.random() * 65536),
+--	octaves = 2,
+--	persistence = 0.5,
+--	lacunarity = 2.0,
+--	flags = "defaults"
+--})
+--
+--local pos2d = {}
+
 local function get_density(x, y, z)
 	local density = get_layer_density(island_layer_1, x, y, z)
 	if density > 0.55 then return density end
@@ -119,6 +200,18 @@ local function get_density(x, y, z)
 	
 	density = math.max(density, get_layer_density(island_layer_3, x, y, z))
 	return density
+
+	--pos2d.x = x
+	--pos2d.y = z
+	--
+	--local dx = DISTORT_X_NOISE:get_2d(pos2d)
+	--local dy = DISTORT_Y_NOISE:get_2d(pos2d)
+	--local dz = DISTORT_Z_NOISE:get_2d(pos2d)
+	--
+	--local islands1 = 0.9 - get_voronoi_islands(0, x * 0.01 + dx * 0.1, y * 0.03 + dy * 0.1, z * 0.01 + dz * 0.1)
+	--local islands2 = 0.9 - get_voronoi_islands(0, x * 0.1 + dx * 0.1, y * 0.03 + dy * 0.1, z * 0.1 + dz * 0.1)
+	--
+	--return math.max(islands1, islands2)
 end
 
 local GRID_SIZE = 8
@@ -189,10 +282,9 @@ end
 local BARRIER_ID = minetest.get_content_id("thelimit:barrier")
 local GLAUCOLIT_ID = minetest.get_content_id("thelimit:glaucolit")
 local HYPHUM_ID = minetest.get_content_id("thelimit:hyphum")
-local GUTTARBA_ID = minetest.get_content_id("thelimit:guttarba_normal")
-local AIR_ID = minetest.get_content_id("air")
 
 local node_data = {}
+local param2_data = {}
 local light_data = {}
 
 local side, side_max, array_side_dy, array_side_dz, size, place_index
@@ -202,9 +294,10 @@ local function get_node(pos)
 	return node_data[index]
 end
 
-local function set_node(pos, node)
+local function set_node(pos, node, param2)
 	local index = place_index + pos.x + pos.y * array_side_dy + pos.z * array_side_dz
 	node_data[index] = node
+	param2_data[index] = param2 or 0
 end
 
 local function fill_terrain(emin, emax)
@@ -235,7 +328,7 @@ local function fill_terrain(emin, emax)
 		local wy = y + emin.y
 		if wy >= BARRIER_BOTTOM and wy < MIN_HEIGHT then
 			node_data[index] = BARRIER_ID
-		elseif wy >= MIN_HEIGHT and node_data[index] == AIR_ID and interpolate_cell(x, y, z) > 0.5 then
+		elseif wy >= MIN_HEIGHT and node_data[index] == minetest.CONTENT_AIR and interpolate_cell(x, y, z) > 0.5 then
 			node_data[index] = GLAUCOLIT_ID
 		end
 		
@@ -256,7 +349,7 @@ local function fill_terrain(emin, emax)
 		local z = math.floor(index_dec / array_side_dz)
 		if z < 15 or z > side_max then goto surface_fill_end end
 		
-		if node_data[index + array_side_dy] == AIR_ID then
+		if node_data[index + array_side_dy] == minetest.CONTENT_AIR then
 			node_data[index] = HYPHUM_ID
 		end
 		
@@ -273,10 +366,10 @@ local function fill_terrain(emin, emax)
 			if node_data[index] == HYPHUM_ID then
 				place_index = index + array_side_dy
 				thelimit.trees.stellata(get_node, set_node)
-				goto population_end
+				goto stellata_break
 			end
 		end
-		::population_end::
+		::stellata_break::
 	end
 	
 	for i = 1, 50 do
@@ -288,10 +381,10 @@ local function fill_terrain(emin, emax)
 			if node_data[index] == HYPHUM_ID then
 				place_index = index + array_side_dy
 				thelimit.trees.stellata_small(get_node, set_node)
-				goto population_end
+				goto stel_small_break
 			end
 		end
-		::population_end::
+		::stel_small_break::
 	end
 
 	for i = 1, 100 do
@@ -303,10 +396,10 @@ local function fill_terrain(emin, emax)
 			if node_data[index] == HYPHUM_ID then
 				place_index = index + array_side_dy
 				thelimit.plants.guttarba(get_node, set_node)
-				goto population_end
+				goto guttarba_break
 			end
 		end
-		::population_end::
+		::guttarba_break::
 	end
 
 	for i = 1, 50 do
@@ -318,10 +411,20 @@ local function fill_terrain(emin, emax)
 			if node_data[index] == HYPHUM_ID then
 				place_index = index + array_side_dy
 				thelimit.plants.lucinus(get_node, set_node)
-				goto population_end
+				goto lucinus_break
 			end
 		end
-		::population_end::
+		::lucinus_break::
+	end
+
+	for i = 1, 500 do
+		local px = math.floor(16 + math.random() * max_rand)
+		local py = math.floor(16 + math.random() * max_rand)
+		local pz = math.floor(16 + math.random() * max_rand)
+		place_index = px + py * array_side_dy + pz * array_side_dz
+		if node_data[place_index] == minetest.CONTENT_AIR then
+			thelimit.plants.flocus(get_node, set_node)
+		end
 	end
 end
 
@@ -333,8 +436,10 @@ minetest.register_on_generated(function(minp, maxp, blockseed)
 	end
 	
 	vm:get_data(node_data)
+	vm:get_param2_data(param2_data)
 	fill_terrain(emin, emax)
 	vm:set_data(node_data)
+	vm:set_param2_data(param2_data)
 	vm:calc_lighting()
 	vm:get_light_data(light_data)
 	thelimit.update_sky_light(emin, emax, node_data, light_data)

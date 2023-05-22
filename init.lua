@@ -52,6 +52,9 @@ dofile(path .. "/scripts/guttarba/guttarba_scatter.lua")
 dofile(path .. "/scripts/lucinus/lucinus_nodes.lua")
 dofile(path .. "/scripts/lucinus/lucinus_scatter.lua")
 
+dofile(path .. "/scripts/flocus/flocus_nodes.lua")
+dofile(path .. "/scripts/flocus/flocus_scatter.lua")
+
 dofile(path .. "/scripts/biomes.lua")
 dofile(path .. "/scripts/worldgen.lua")
 dofile(path .. "/scripts/ambient_light.lua")

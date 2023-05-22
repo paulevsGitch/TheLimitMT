@@ -1,4 +1,4 @@
-local BIOME_MAX = 30928 - 256 - 128
+local BIOME_MAX = thelimit.TRANSITION
 
 minetest.register_biome({
     name = "thelimit",
@@ -14,11 +14,10 @@ minetest.register_biome({
     node_riverbed = "default:gravel",
     depth_riverbed = 2,
     node_cave_liquid = "default:lava_source",
-    node_cave_liquid = {"default:water_source", "default:lava_source"},
     node_dungeon = "default:cobble",
     node_dungeon_alt = "default:mossycobble",
     node_dungeon_stair = "stairs:stair_cobble",
-    y_max = 31000,
+    y_max = 32000,
     y_min = BIOME_MAX,
     vertical_blend = 0,
     heat_point = 0,
