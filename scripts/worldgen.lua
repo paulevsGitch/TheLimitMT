@@ -286,6 +286,9 @@ local light_data = {}
 local biome_map = {}
 
 local side, side_max, array_side_dy, array_side_dz, size, place_index, max_chunk
+local distort_x, distort_z
+local buffer_x = {}
+local buffer_z = {}
 
 local function get_node(pos)
 	local index = place_index + pos.x + pos.y * array_side_dy + pos.z * array_side_dz
@@ -333,11 +336,40 @@ local function fill_terrain(emin, emax)
 		array_side_dz = array_side_dy * array_side_dy
 		size = array_side_dy * array_side_dz
 		max_chunk = math.floor(side / 16) - 1
+
+		math.randomseed(WORLD_SEED)
+
+		local distort_size = side + 1
+		distort_size = {x = distort_size, y = distort_size, z = distort_size}
+
+		distort_x = PerlinNoiseMap({
+			offset = 0,
+			scale = 1,
+			spread = {x = 10, y = 5, z = 10},
+			seed = math.random(0, 65535),
+			octaves = 2,
+			persistence = 0.5,
+			lacunarity = 2.0,
+			flags = "defaults"
+		}, distort_size)
+
+		distort_z = PerlinNoiseMap({
+			offset = 0,
+			scale = 1,
+			spread = {x = 10, y = 5, z = 10},
+			seed = math.random(0, 65535),
+			octaves = 2,
+			persistence = 0.5,
+			lacunarity = 2.0,
+			flags = "defaults"
+		}, distort_size)
 	end
 	
 	fill_cell(emin, emax)
 
 	thelimit.biome_map.fill_map(emin, side, biome_map)
+	distort_x:get_3d_map_flat(emin, buffer_x)
+	distort_z:get_3d_map_flat(emin, buffer_z)
 	
 	for index = 1, size do
 		local index_dec = index - 1
@@ -355,7 +387,9 @@ local function fill_terrain(emin, emax)
 		if wy >= BARRIER_BOTTOM and wy < MIN_HEIGHT then
 			node_data[index] = BARRIER_ID
 		elseif wy >= MIN_HEIGHT and node_data[index] == minetest.CONTENT_AIR and interpolate_cell(x, y, z) > 0.5 then
-			local biome = thelimit.biome_map.get_from_map(biome_map, x, z)
+			local px = math.floor(x + buffer_x[index] * 8)
+			local pz = math.floor(z + buffer_z[index] * 8)
+			local biome = thelimit.biome_map.get_from_map(biome_map, px, pz)
 			node_data[index] = biome.filler
 		end
 		
@@ -374,10 +408,12 @@ local function fill_terrain(emin, emax)
 		local z = math.floor(index_dec / array_side_dz)
 		if z < 15 or z > side_max then goto surface_fill_end end
 
-		local biome = thelimit.biome_map.get_from_map(biome_map, x, z)
-		if node_data[index] ~= biome.filler then goto surface_fill_end end
+		if not thelimit.biome_map.is_filler(node_data[index]) then goto surface_fill_end end
 
 		if node_data[index + array_side_dy] == minetest.CONTENT_AIR then
+			local px = math.floor(x + buffer_x[index] * 8)
+			local pz = math.floor(z + buffer_z[index] * 8)
+			local biome = thelimit.biome_map.get_from_map(biome_map, px, pz)
 			node_data[index] = biome.surface
 		end
 		

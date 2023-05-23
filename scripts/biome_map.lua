@@ -127,3 +127,12 @@ thelimit.biome_map.get_biome = function(x, z)
 	index = pos2d.x * 64 + pos2d.y + 1
 	return chunk[index]
 end
+
+thelimit.biome_map.is_filler = function(node_id)
+	for _, biome in ipairs(BIOMES) do
+		if node_id == biome.filler then
+			return true
+		end
+	end
+	return false
+end
