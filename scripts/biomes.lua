@@ -45,11 +45,34 @@ thelimit.biome_map.register_biome({
         {feature = thelimit.plants.guttarba, count = 4, place = "heightmap"},
         {feature = thelimit.plants.lucinus, count = 2, place = "heightmap"},
         {feature = thelimit.plants.flocus, count = 20, place = "volume"}
+    },
+    particles = {
+        texture = {
+            name = "thelimit_yellow_particle.png",
+            blend = "screen",
+            scale_tween = {
+                style = "pulse",
+                0, 1
+            }
+        }
     }
 })
 
 thelimit.biome_map.register_biome({
     name = "Void Lakeside",
     surface = "thelimit:purple_hyphum",
-    filler = "thelimit:vitilit"
+    filler = "thelimit:vitilit",
+    particles = {
+        texture = {
+            name = "thelimit_purple_particle.png",
+            blend = "screen",
+            animation={
+                type = "vertical_frames",
+                aspect_w = 8,
+                aspect_h = 8,
+                length = -1
+            }
+        },
+        exptime = {min = 1, max = 2},
+    }
 })

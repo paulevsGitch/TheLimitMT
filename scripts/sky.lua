@@ -60,16 +60,43 @@ local BIOME_PARTICLES = {
 local players_sky = {}
 local update_delta = 0
 
+local function update_biome_particles(player)
+	local pos = player:get_pos()
+	local biome = thelimit.biome_map.get_biome(pos.x, pos.z)
+	local data = players_sky[player]
+
+	if not data then
+		data = {}
+		players_sky[player] = data
+	end
+
+	if data.biome ~= biome.id then
+		data.biome = biome.id
+
+		if data.particles then
+			minetest.delete_particlespawner(data.particles, player:get_player_name())
+		end
+
+		local particles = biome.particles
+		if particles then
+			local def = table.copy(BIOME_PARTICLES)
+			for k, v in pairs(particles) do
+				def[k] = v
+			end
+			def.attached = player
+			data.particles = minetest.add_particlespawner(def)
+		else
+			data.particles = nil
+		end
+	end
+end
+
 local function on_dimension_set(player)
 	player:set_sky(SKY)
 	player:set_sun(INVISIBLE)
 	player:set_moon(INVISIBLE)
 	player:set_stars(STARS)
-	BIOME_PARTICLES.attached = player
-	local id = minetest.add_particlespawner(BIOME_PARTICLES)
-	players_sky[player] = {
-		particles = id
-	}
+	update_biome_particles(player)
 end
 
 minetest.register_globalstep(function(dtime)
@@ -90,6 +117,10 @@ minetest.register_globalstep(function(dtime)
 			local data = players_sky[player]
 			minetest.delete_particlespawner(data.particles, player)
 			players_sky[player] = nil
+		end
+
+		if is_in_dim then
+			update_biome_particles(player)
 		end
 	end
 end)
