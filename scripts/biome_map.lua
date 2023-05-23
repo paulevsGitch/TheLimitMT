@@ -36,6 +36,7 @@ local pos2d = {}
 thelimit.biome_map.register_biome = function(def)
 	def.surface = minetest.get_content_id(def.surface or "thelimit:glaucolit")
 	def.filler = minetest.get_content_id(def.filler or "thelimit:glaucolit")
+	def.id = #BIOMES + 1
 	table.insert(BIOMES, def)
 end
 
@@ -53,6 +54,38 @@ end
 
 thelimit.biome_map.get_from_map = function(data, x, z)
 	return data[x * fill_side + z + 1]
+end
+
+local function save_chunk(chunk, cx, cz)
+	local data = ""
+
+	for i = 1, 4096 do
+		data = data .. string.char(chunk[i].id)
+	end
+
+	minetest.mkdir(minetest.get_worldpath() .. "/thelimit")
+	local file = io.open(minetest.get_worldpath() .. "/thelimit/biome_chunk_" .. cx .. "_" .. cz .. ".txt", "w")
+	if file then
+		file:write(data)
+		file:close()
+	end
+end
+
+local function load_chunk(cx, cz)
+	local file = io.open(minetest.get_worldpath() .. "/thelimit/biome_chunk_" .. cx .. "_" .. cz .. ".txt", "r")
+	if file then
+		local data = file:read("*all")
+		file:close()
+
+		local chunk = {}
+		for i = 1, 4096 do
+			local id = string.byte(data, i, i)
+			chunk[i] = BIOMES[id]
+		end
+
+		return chunk
+	end
+	return nil
 end
 
 thelimit.biome_map.get_biome = function(x, z)
@@ -75,12 +108,20 @@ thelimit.biome_map.get_biome = function(x, z)
 	local chunk = DATA[index]
 
 	if not chunk then
-		chunk = {}
-		DATA[index] = chunk
-		math.randomseed(cx * 31000 + cz + SEED)
-		for i = 1, 4096 do
-			chunk[i] = BIOMES[math.random(#BIOMES)]
+		chunk = load_chunk(cx, cz)
+
+		if not chunk then
+			chunk = {}
+
+			math.randomseed(cx * 31000 + cz + SEED)
+			for i = 1, 4096 do
+				chunk[i] = BIOMES[math.random(#BIOMES)]
+			end
+			
+			save_chunk(chunk, cx, cz)
 		end
+
+		DATA[index] = chunk
 	end
 
 	index = pos2d.x * 64 + pos2d.y + 1
