@@ -1,10 +1,9 @@
-local MAX_HEIGHT = thelimit.MAX_HEIGHT
 local MIN_HEIGHT = thelimit.MIN_HEIGHT
 local BARRIER_BOTTOM = thelimit.BARRIER_BOTTOM
 local WORLD_SEED = minetest.get_mapgen_setting("seed")
 
 local function set_rand_seed(seed, x, y)
-	math.randomseed(x  * 31000 + y + seed)
+	math.randomseed(x * 31000 + y + seed)
 end
 
 local function get_voronoi(seed, x, y)
@@ -74,13 +73,13 @@ end
 --end
 
 local function make_island_layer(height, distance, coverage)
-	local voronoi_seed = math.floor(math.random() * 65536)
+	local voronoi_seed = math.random(0, 65535)
 	return {
 		terrain_noise = PerlinNoise({
 			offset = 0,
 			scale = 1,
 			spread = {x = 30, y = 30, z = 30},
-			seed = math.floor(math.random() * 65536),
+			seed = math.random(0, 65535),
 			octaves = 1,
 			persistence = 1.0,
 			lacunarity = 1.0,
@@ -93,7 +92,7 @@ local function make_island_layer(height, distance, coverage)
 			offset = 0,
 			scale = 1,
 			spread = {x = 100, y = 100, z = 100},
-			seed = math.floor(math.random() * 65536),
+			seed = math.random(0, 65535),
 			octaves = 2,
 			persistence = 0.5,
 			lacunarity = 2.0,
@@ -103,7 +102,7 @@ local function make_island_layer(height, distance, coverage)
 			offset = 0,
 			scale = 1,
 			spread = {x = 100, y = 100, z = 100},
-			seed = math.floor(math.random() * 65536),
+			seed = math.random(0, 65535),
 			octaves = 2,
 			persistence = 0.5,
 			lacunarity = 2.0,
@@ -160,7 +159,7 @@ end
 --	offset = 0,
 --	scale = 1,
 --	spread = {x = 100, y = 100, z = 100},
---	seed = math.floor(math.random() * 65536),
+--	seed = math.random(0, 65535),
 --	octaves = 2,
 --	persistence = 0.5,
 --	lacunarity = 2.0,
@@ -171,7 +170,7 @@ end
 --	offset = 0,
 --	scale = 1,
 --	spread = {x = 100, y = 100, z = 100},
---	seed = math.floor(math.random() * 65536),
+--	seed = math.random(0, 65535),
 --	octaves = 2,
 --	persistence = 0.5,
 --	lacunarity = 2.0,
@@ -182,7 +181,7 @@ end
 --	offset = 0,
 --	scale = 1,
 --	spread = {x = 100, y = 100, z = 100},
---	seed = math.floor(math.random() * 65536),
+--	seed = math.random(0, 65535),
 --	octaves = 2,
 --	persistence = 0.5,
 --	lacunarity = 2.0,
@@ -280,14 +279,13 @@ local function interpolate_cell(x, y, z)
 end
 
 local BARRIER_ID = minetest.get_content_id("thelimit:barrier")
-local GLAUCOLIT_ID = minetest.get_content_id("thelimit:glaucolit")
-local HYPHUM_ID = minetest.get_content_id("thelimit:hyphum")
 
 local node_data = {}
 local param2_data = {}
 local light_data = {}
+local biome_map = {}
 
-local side, side_max, array_side_dy, array_side_dz, size, place_index
+local side, side_max, array_side_dy, array_side_dz, size, place_index, max_chunk
 
 local function get_node(pos)
 	local index = place_index + pos.x + pos.y * array_side_dy + pos.z * array_side_dz
@@ -300,18 +298,46 @@ local function set_node(pos, node, param2)
 	param2_data[index] = param2 or 0
 end
 
+local function heightmap_place(feature, count, min_x, min_z, surface)
+	for i = 1, count do
+		local px = math.random(0, 15) + min_x
+		local pz = math.random(0, 15) + min_z
+		local i_xz = px + pz * array_side_dz
+		for py = side_max, 16, -1 do
+			local index = i_xz + py * array_side_dy
+			if node_data[index] == surface then
+				place_index = index + array_side_dy
+				feature(get_node, set_node)
+			end
+		end
+	end
+end
+
+local function volume_place(feature, count, min_x, min_z)
+	for i = 1, count do
+		local px = math.random(0, 15) + min_x
+		local pz = math.random(0, 15) + min_z
+		local py = math.random(16, side_max)
+		place_index = px + py * array_side_dy + pz * array_side_dz
+		if node_data[place_index] == minetest.CONTENT_AIR then
+			feature(get_node, set_node)
+		end
+	end
+end
+
 local function fill_terrain(emin, emax)
-	--min_pos = emin
-	
 	if not side then
 		side = emax.x - emin.x
 		side_max = side - 15
 		array_side_dy = side + 1
 		array_side_dz = array_side_dy * array_side_dy
 		size = array_side_dy * array_side_dz
+		max_chunk = math.floor(side / 16) - 1
 	end
 	
 	fill_cell(emin, emax)
+
+	thelimit.biome_map.fill_map(emin, side, biome_map)
 	
 	for index = 1, size do
 		local index_dec = index - 1
@@ -329,15 +355,14 @@ local function fill_terrain(emin, emax)
 		if wy >= BARRIER_BOTTOM and wy < MIN_HEIGHT then
 			node_data[index] = BARRIER_ID
 		elseif wy >= MIN_HEIGHT and node_data[index] == minetest.CONTENT_AIR and interpolate_cell(x, y, z) > 0.5 then
-			node_data[index] = GLAUCOLIT_ID
+			local biome = thelimit.biome_map.get_from_map(biome_map, x, z)
+			node_data[index] = biome.filler
 		end
 		
 		::worldgen_end::
 	end
-	
+
 	for index = 1, size do
-		if node_data[index] ~= GLAUCOLIT_ID then goto surface_fill_end end
-		
 		local index_dec = index - 1
 		
 		local x = index_dec % array_side_dy
@@ -348,82 +373,32 @@ local function fill_terrain(emin, emax)
 		
 		local z = math.floor(index_dec / array_side_dz)
 		if z < 15 or z > side_max then goto surface_fill_end end
-		
+
+		local biome = thelimit.biome_map.get_from_map(biome_map, x, z)
+		if node_data[index] ~= biome.filler then goto surface_fill_end end
+
 		if node_data[index + array_side_dy] == minetest.CONTENT_AIR then
-			node_data[index] = HYPHUM_ID
+			node_data[index] = biome.surface
 		end
 		
 		::surface_fill_end::
 	end
-	
-	local max_rand = side - 32
-	for i = 1, 100 do
-		local px = math.floor(16 + math.random() * max_rand)
-		local pz = math.floor(16 + math.random() * max_rand)
-		local i_xz = px + pz * array_side_dz
-		for py = max_rand + 16, 16, -1 do
-			local index = i_xz + py * array_side_dy
-			if node_data[index] == HYPHUM_ID then
-				place_index = index + array_side_dy
-				thelimit.trees.stellata(get_node, set_node)
-				--goto stellata_break
-			end
-		end
-		--::stellata_break::
-	end
-	
-	for i = 1, 50 do
-		local px = math.floor(16 + math.random() * max_rand)
-		local pz = math.floor(16 + math.random() * max_rand)
-		local i_xz = px + pz * array_side_dz
-		for py = max_rand + 16, 16, -1 do
-			local index = i_xz + py * array_side_dy
-			if node_data[index] == HYPHUM_ID then
-				place_index = index + array_side_dy
-				thelimit.trees.stellata_small(get_node, set_node)
-				--goto stel_small_break
-			end
-		end
-		--::stel_small_break::
-	end
 
-	for i = 1, 100 do
-		local px = math.floor(16 + math.random() * max_rand)
-		local pz = math.floor(16 + math.random() * max_rand)
-		local i_xz = px + pz * array_side_dz
-		for py = max_rand + 16, 16, -1 do
-			local index = i_xz + py * array_side_dy
-			if node_data[index] == HYPHUM_ID then
-				place_index = index + array_side_dy
-				thelimit.plants.guttarba(get_node, set_node)
-				--goto guttarba_break
+	for cx = 1, max_chunk do
+		local min_x = cx * 16
+		for cz = 1, max_chunk do
+			local min_z = cz * 16
+			local biome = thelimit.biome_map.get_from_map(biome_map, min_x + 8, min_z + 8)
+			if biome.features then
+				for _, entry in ipairs(biome.features) do
+					local type = entry.place
+					if type == "heightmap" then
+						heightmap_place(entry.feature, entry.count, min_x, min_z, biome.surface)
+					elseif type == "volume" then
+						volume_place(entry.feature, entry.count, min_x, min_z)
+					end
+				end
 			end
-		end
-		--::guttarba_break::
-	end
-
-	for i = 1, 50 do
-		local px = math.floor(16 + math.random() * max_rand)
-		local pz = math.floor(16 + math.random() * max_rand)
-		local i_xz = px + pz * array_side_dz
-		for py = max_rand + 16, 16, -1 do
-			local index = i_xz + py * array_side_dy
-			if node_data[index] == HYPHUM_ID then
-				place_index = index + array_side_dy
-				thelimit.plants.lucinus(get_node, set_node)
-				--goto lucinus_break
-			end
-		end
-		--::lucinus_break::
-	end
-
-	for i = 1, 500 do
-		local px = math.floor(16 + math.random() * max_rand)
-		local py = math.floor(16 + math.random() * max_rand)
-		local pz = math.floor(16 + math.random() * max_rand)
-		place_index = px + py * array_side_dy + pz * array_side_dz
-		if node_data[place_index] == minetest.CONTENT_AIR then
-			thelimit.plants.flocus(get_node, set_node)
 		end
 	end
 end

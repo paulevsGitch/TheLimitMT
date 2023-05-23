@@ -16,3 +16,12 @@ minetest.register_node("thelimit:hyphum", {
 		footstep = {name = "default_grass_footstep", gain = 0.25},
 	})
 })
+
+minetest.register_node("thelimit:purple_hyphum", {
+	description = S("Hyphum"),
+	tiles = {"thelimit_purple_hyphum_top.png", "thelimit_vitilit.png", "thelimit_purple_hyphum_side.png"},
+	groups = {cracky = 3, stone = 1},
+	sounds = default.node_sound_dirt_defaults({
+		footstep = {name = "default_grass_footstep", gain = 0.25},
+	})
+})

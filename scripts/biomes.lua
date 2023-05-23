@@ -34,3 +34,22 @@ minetest.register_on_mods_loaded(function()
 		end
 	end
 end)
+
+thelimit.biome_map.register_biome({
+    name = "Stellata Forest",
+    surface = "thelimit:hyphum",
+    filler = "thelimit:glaucolit",
+    features = {
+        {feature = thelimit.trees.stellata, count = 4, place = "heightmap"},
+        {feature = thelimit.trees.stellata_small, count = 2, place = "heightmap"},
+        {feature = thelimit.plants.guttarba, count = 4, place = "heightmap"},
+        {feature = thelimit.plants.lucinus, count = 2, place = "heightmap"},
+        {feature = thelimit.plants.flocus, count = 20, place = "volume"}
+    }
+})
+
+thelimit.biome_map.register_biome({
+    name = "Void Lakeside",
+    surface = "thelimit:purple_hyphum",
+    filler = "thelimit:vitilit"
+})
