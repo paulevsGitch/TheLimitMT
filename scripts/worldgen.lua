@@ -120,29 +120,32 @@ local DENSITY_NOISE = PerlinNoise({
 	flags = "defaults, absvalue"
 })
 
-local pos2d = {}
+local dens_pos = {}
+local layer_1_seed = math.random(0, 65535)
+local layer_2_seed = math.random(0, 65535)
+local layer_3_seed = math.random(0, 65535)
 
 local function get_density(x, y, z)
-	pos2d.x = x
-	pos2d.y = z
+	dens_pos.x = x
+	dens_pos.y = z
 	
-	local dx = DISTORT_X_NOISE:get_2d(pos2d)
-	local dz = DISTORT_Z_NOISE:get_2d(pos2d)
+	local dx = DISTORT_X_NOISE:get_2d(dens_pos)
+	local dz = DISTORT_Z_NOISE:get_2d(dens_pos)
 	
-	pos2d.x = x
-	pos2d.y = y
-	pos2d.z = z
+	dens_pos.x = x
+	dens_pos.y = y
+	dens_pos.z = z
 
-	local dy = DISTORT_Y_NOISE:get_3d(pos2d)
-	local void = math.pow(1 - DENSITY_NOISE:get_3d(pos2d), 6) * 4
+	local dy = DISTORT_Y_NOISE:get_3d(dens_pos)
+	local void = math.pow(1 - DENSITY_NOISE:get_3d(dens_pos), 6) * 4
 
-	local density = 1.2 - get_islands_voronoi(0, x * 0.01 + dx * 0.2, (y - MIDDLE) * 0.01, z * 0.01 + dz * 0.2, 2) + dy * 0.7 - void
+	local density = 1.2 - get_islands_voronoi(layer_1_seed, x * 0.01 + dx * 0.2, (y - MIDDLE) * 0.01, z * 0.01 + dz * 0.2, 2) + dy * 0.7 - void
 	if density > 0.51 then return density end
 
-	density = math.max(density, 0.75 - get_islands_voronoi(1, x * 0.02 + dx * 0.1, (y - MIDDLE - 40) * 0.02, z * 0.02 + dz * 0.1, 0.5) + dy * 0.7 - void)
+	density = math.max(density, 0.75 - get_islands_voronoi(layer_2_seed, x * 0.02 + dx * 0.1, (y - MIDDLE - 40) * 0.02, z * 0.02 + dz * 0.1, 0.5) + dy * 0.7 - void)
 	if density > 0.51 then return density end
 
-	density = math.max(density, 0.75 - get_islands_voronoi(2, x * 0.02 + dx * 0.1, (y - MIDDLE + 40) * 0.02, z * 0.02 + dz * 0.1, 0.5) + dy * 0.7 - void)
+	density = math.max(density, 0.75 - get_islands_voronoi(layer_3_seed, x * 0.02 + dx * 0.1, (y - MIDDLE + 40) * 0.02, z * 0.02 + dz * 0.1, 0.5) + dy * 0.7 - void)
 
 	return density
 end
