@@ -1,7 +1,7 @@
 thelimit = {}
 
 thelimit.MAX_HEIGHT = 30928
-thelimit.MIN_HEIGHT = thelimit.MAX_HEIGHT - 256
+thelimit.MIN_HEIGHT = thelimit.MAX_HEIGHT - 1024
 thelimit.TRANSITION = thelimit.MIN_HEIGHT - 128
 thelimit.BARRIER_BOTTOM = thelimit.MIN_HEIGHT - 256
 

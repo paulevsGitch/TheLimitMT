@@ -1,123 +1,70 @@
 local MIN_HEIGHT = thelimit.MIN_HEIGHT
 local BARRIER_BOTTOM = thelimit.BARRIER_BOTTOM
 local WORLD_SEED = minetest.get_mapgen_setting("seed")
+local MIDDLE = (thelimit.MAX_HEIGHT - thelimit.MIN_HEIGHT) * 0.5
 
 local function set_rand_seed(seed, x, y)
 	math.randomseed(x * 31000 + y + seed)
 end
 
-local function get_voronoi(seed, x, y)
+local voronoi_cache = {
+	pos = {},
+	data = {}
+}
+
+for i = 1, 9 do
+	voronoi_cache.data[i] = {}
+end
+
+local function get_islands_voronoi(seed, x, y, z, depth)
 	local ix = math.floor(x)
-	local iy = math.floor(y)
-	local sdx = x - ix
-	local sdy = y - iy
-	local min = 10000
-	
-	for  i = -1, 1 do
-		for j = -1, 1 do
-			set_rand_seed(seed, ix + i, iy + j)
-			local dx = math.random() * 0.7 + i - sdx
-			local dy = math.random() * 0.7 + j - sdy
-			local distance = math.sqrt(dx * dx + dy * dy)
-			if distance < min then
-				min = distance
+	local iz = math.floor(z)
+
+	if voronoi_cache.pos.x ~= ix or voronoi_cache.pos.z ~= iz then
+		voronoi_cache.pos.x = ix
+		voronoi_cache.pos.z = iz
+		local index = 1
+		for i = -1, 1 do
+			for j = -1, 1 do
+				set_rand_seed(seed, ix + i, iz + j)
+				local pos = voronoi_cache.data[index]
+				pos.x = math.random() * 0.7 + i
+				pos.z = math.random() * 0.7 + j
+				pos.y = math.random() * 2 - 1
+				pos.s = math.random() * 0.5 + 1
+				index = index + 1
 			end
+		end
+	end
+
+	local sdx = x - ix
+	local sdz = z - iz
+	local min = 10000
+
+	local dx, dy, dz, distance
+
+	for i = 1, 9 do
+		local pos = voronoi_cache.data[i]
+
+		dx = pos.x - sdx
+		dz = pos.z - sdz
+		dy = pos.y - y
+
+		if dy < 0 then
+			dy = dy * 3
+			distance = math.sqrt(dx * dx + dz * dz + dy * dy)
+		else
+			distance = math.sqrt(dx * dx + dz * dz) + dy * depth
+		end
+
+		distance = distance * pos.s
+		if distance < min then
+			min = distance
 		end
 	end
 	
 	return min
 end
-
---local function get_voronoi_islands(seed, x, y, z)
---	local ix = math.floor(x)
---	local iy = math.floor(y)
---	local iz = math.floor(z)
---
---	local sdx = x - ix
---	local sdy = y - iy
---	local sdz = z - iz
---
---	local distance, dx, dy, dz
---	local min = 10000
---	
---	for i = -1, 1 do
---		for j = -1, 1 do
---			for k = -1, 1 do
---				math.randomseed((ix + i) * 1000000 + (iz + k) * 1000 + (iy + j) + seed)
---
---				dx = math.random() + i - sdx
---				dy = math.random() + j - sdy
---				dz = math.random() + k - sdz
---
---				if dy < 0 then
---					dy = dy * 3
---					distance = math.sqrt(dx * dx + dy * dy + dz * dz)
---				else
---					distance = math.sqrt(dx * dx + dz * dz) + dy * 0.5
---				end
---
---				distance = distance * (math.random() + 1)
---				
---				--if dy < 0 then dy = dy * 3 end
---
---				--local distance = math.sqrt(dx * dx + dy * dy + dz * dz)
---				
---				if distance < min then
---					min = distance
---				end
---			end
---		end
---	end
---	
---	return min
---end
-
-local function make_island_layer(height, distance, coverage)
-	local voronoi_seed = math.random(0, 65535)
-	return {
-		terrain_noise = PerlinNoise({
-			offset = 0,
-			scale = 1,
-			spread = {x = 30, y = 30, z = 30},
-			seed = math.random(0, 65535),
-			octaves = 1,
-			persistence = 1.0,
-			lacunarity = 1.0,
-			flags = "defaults"
-		}),
-		island_noise = function(pos)
-			return get_voronoi(voronoi_seed, pos.x, pos.y)
-		end,
-		distort_x_noise = PerlinNoise({
-			offset = 0,
-			scale = 1,
-			spread = {x = 100, y = 100, z = 100},
-			seed = math.random(0, 65535),
-			octaves = 2,
-			persistence = 0.5,
-			lacunarity = 2.0,
-			flags = "defaults"
-		}),
-		distort_y_noise = PerlinNoise({
-			offset = 0,
-			scale = 1,
-			spread = {x = 100, y = 100, z = 100},
-			seed = math.random(0, 65535),
-			octaves = 2,
-			persistence = 0.5,
-			lacunarity = 2.0,
-			flags = "defaults"
-		}),
-		height = height,
-		distance = 1 / distance,
-		coverage = coverage
-	}
-end
-
-math.randomseed(WORLD_SEED)
-local island_layer_1 = make_island_layer(120, 200, 1.0)
-local island_layer_2 = make_island_layer(80, 200, 0.75)
-local island_layer_3 = make_island_layer(160, 200, 0.75)
 
 local function smooth_step(x)
 	return x * x * x * (x * (x * 6 - 15) + 10)
@@ -127,90 +74,77 @@ local function lerp(a, b, delta)
 	return a + delta * (b - a)
 end
 
-local function get_gradient(y, height, bottom, middle, top)
-	local delta = math.abs(y - height) / 120
-	delta = lerp(delta, smooth_step(delta), 0.75)
-	if y < height then
-		return lerp(middle, bottom, delta)
-	else
-		return lerp(middle, top, delta)
-	end
-end
+math.randomseed(WORLD_SEED)
 
-local function get_layer_density(layer, x, y, z)
-	local pos2d = {x = x, y = z}
-	
-	local dx = layer.distort_x_noise:get_2d(pos2d)
-	local dz = layer.distort_y_noise:get_2d(pos2d)
-	local dy = layer.terrain_noise:get_2d(pos2d) * 10
-	
-	pos2d.x = x * layer.distance + dx * 0.5
-	pos2d.y = z * layer.distance + dz * 0.5
-	
-	local density = layer.coverage - layer.island_noise(pos2d)
-	density = density + get_gradient(y + dy, layer.height, -1, 0, -6)
-	
-	return density
-end
+local DISTORT_X_NOISE = PerlinNoise({
+	offset = 0,
+	scale = 1,
+	spread = {x = 100, y = 100, z = 100},
+	seed = math.random(0, 65535),
+	octaves = 2,
+	persistence = 0.5,
+	lacunarity = 2.0,
+	flags = "defaults"
+})
 
---math.randomseed(WORLD_SEED)
---
---local DISTORT_X_NOISE = PerlinNoise({
---	offset = 0,
---	scale = 1,
---	spread = {x = 100, y = 100, z = 100},
---	seed = math.random(0, 65535),
---	octaves = 2,
---	persistence = 0.5,
---	lacunarity = 2.0,
---	flags = "defaults"
---})
---
---local DISTORT_Y_NOISE = PerlinNoise({
---	offset = 0,
---	scale = 1,
---	spread = {x = 100, y = 100, z = 100},
---	seed = math.random(0, 65535),
---	octaves = 2,
---	persistence = 0.5,
---	lacunarity = 2.0,
---	flags = "defaults"
---})
---
---local DISTORT_Z_NOISE = PerlinNoise({
---	offset = 0,
---	scale = 1,
---	spread = {x = 100, y = 100, z = 100},
---	seed = math.random(0, 65535),
---	octaves = 2,
---	persistence = 0.5,
---	lacunarity = 2.0,
---	flags = "defaults"
---})
---
---local pos2d = {}
+local DISTORT_Y_NOISE = PerlinNoise({
+	offset = 0,
+	scale = 1,
+	spread = {x = 100, y = 100, z = 100},
+	seed = math.random(0, 65535),
+	octaves = 3,
+	persistence = 0.5,
+	lacunarity = 2.0,
+	flags = "defaults"
+})
+
+local DISTORT_Z_NOISE = PerlinNoise({
+	offset = 0,
+	scale = 1,
+	spread = {x = 100, y = 100, z = 100},
+	seed = math.random(0, 65535),
+	octaves = 2,
+	persistence = 0.5,
+	lacunarity = 2.0,
+	flags = "defaults"
+})
+
+local DENSITY_NOISE = PerlinNoise({
+	offset = 0,
+	scale = 1,
+	spread = {x = 200, y = 200, z = 200},
+	seed = math.random(0, 65535),
+	octaves = 2,
+	persistence = 0.5,
+	lacunarity = 2.0,
+	flags = "defaults, absvalue"
+})
+
+local pos2d = {}
 
 local function get_density(x, y, z)
-	local density = get_layer_density(island_layer_1, x, y, z)
-	if density > 0.55 then return density end
+	pos2d.x = x
+	pos2d.y = z
 	
-	density = math.max(density, get_layer_density(island_layer_2, x, y, z))
-	if density > 0.55 then return density end
+	local dx = DISTORT_X_NOISE:get_2d(pos2d)
+	local dz = DISTORT_Z_NOISE:get_2d(pos2d)
 	
-	density = math.max(density, get_layer_density(island_layer_3, x, y, z))
-	return density
+	pos2d.x = x
+	pos2d.y = y
+	pos2d.z = z
 
-	--pos2d.x = x
-	--pos2d.y = z
-	--
-	--local dx = DISTORT_X_NOISE:get_2d(pos2d)
-	--local dy = DISTORT_Y_NOISE:get_2d(pos2d)
-	--local dz = DISTORT_Z_NOISE:get_2d(pos2d)
-	--
-	--local islands1 = 0.9 - get_voronoi_islands(0, x * 0.01 + dx * 0.1, y * 0.03 + dy * 0.1, z * 0.01 + dz * 0.1)
-	--local islands2 = 0.9 - get_voronoi_islands(0, x * 0.1 + dx * 0.1, y * 0.03 + dy * 0.1, z * 0.1 + dz * 0.1)
-	--
-	--return math.max(islands1, islands2)
+	local dy = DISTORT_Y_NOISE:get_3d(pos2d)
+	local void = math.pow(1 - DENSITY_NOISE:get_3d(pos2d), 6) * 4
+
+	local density = 1.2 - get_islands_voronoi(0, x * 0.01 + dx * 0.2, (y - MIDDLE) * 0.01, z * 0.01 + dz * 0.2, 2) + dy * 0.7 - void
+	if density > 0.51 then return density end
+
+	density = math.max(density, 0.75 - get_islands_voronoi(1, x * 0.02 + dx * 0.1, (y - MIDDLE - 40) * 0.02, z * 0.02 + dz * 0.1, 0.5) + dy * 0.7 - void)
+	if density > 0.51 then return density end
+
+	density = math.max(density, 0.75 - get_islands_voronoi(2, x * 0.02 + dx * 0.1, (y - MIDDLE + 40) * 0.02, z * 0.02 + dz * 0.1, 0.5) + dy * 0.7 - void)
+
+	return density
 end
 
 local GRID_SIZE = 8
@@ -245,15 +179,19 @@ local function interpolate_cell(x, y, z)
 	local dx = x / GRID_SIZE
 	local dy = y / GRID_SIZE
 	local dz = z / GRID_SIZE
+
 	local x1 = math.floor(dx)
 	local y1 = math.floor(dy)
 	local z1 = math.floor(dz)
+
 	dx = dx - x1
 	dy = dy - y1
 	dz = dz - z1
+
 	dx = lerp(dx, smooth_step(dx), 0.5)
 	dy = lerp(dy, smooth_step(dy), 0.5)
 	dz = lerp(dz, smooth_step(dz), 0.5)
+
 	local x2 = x1 + 1
 	local y2 = y1 + 1
 	local z2 = z1 + 1
@@ -286,9 +224,7 @@ local light_data = {}
 local biome_map = {}
 
 local side, side_max, array_side_dy, array_side_dz, size, place_index, max_chunk
-local distort_x, distort_z
-local buffer_x = {}
-local buffer_z = {}
+local index_table = {}
 
 local function get_node(pos)
 	local index = place_index + pos.x + pos.y * array_side_dy + pos.z * array_side_dz
@@ -342,7 +278,7 @@ local function fill_terrain(emin, emax)
 		local distort_size = side + 1
 		distort_size = {x = distort_size, y = distort_size, z = distort_size}
 
-		distort_x = PerlinNoiseMap({
+		distort_x = PerlinNoise({
 			offset = 0,
 			scale = 1,
 			spread = {x = 10, y = 5, z = 10},
@@ -353,7 +289,7 @@ local function fill_terrain(emin, emax)
 			flags = "defaults"
 		}, distort_size)
 
-		distort_z = PerlinNoiseMap({
+		distort_z = PerlinNoise({
 			offset = 0,
 			scale = 1,
 			spread = {x = 10, y = 5, z = 10},
@@ -363,61 +299,55 @@ local function fill_terrain(emin, emax)
 			lacunarity = 2.0,
 			flags = "defaults"
 		}, distort_size)
+
+		for index = 1, size do
+			local index_dec = index - 1
+			
+			local x = index_dec % array_side_dy
+			if x < 15 or x > side_max then goto index_end end
+			
+			local y = math.floor(index_dec / array_side_dy) % array_side_dy
+			if y < 15 or y > side_max then goto index_end end
+			
+			local z = math.floor(index_dec / array_side_dz)
+			if z < 15 or z > side_max then goto index_end end
+			
+			table.insert(index_table, index)
+			
+			::index_end::
+		end
 	end
 	
 	fill_cell(emin, emax)
-
 	thelimit.biome_map.fill_map(emin, side, biome_map)
-	distort_x:get_3d_map_flat(emin, buffer_x)
-	distort_z:get_3d_map_flat(emin, buffer_z)
 	
-	for index = 1, size do
+	for _, index in ipairs(index_table) do
+		if node_data[index] ~= minetest.CONTENT_AIR then goto fill_end end
+
 		local index_dec = index - 1
-		
-		local x = index_dec % array_side_dy
-		if x < 15 or x > side_max then goto worldgen_end end
-		
 		local y = math.floor(index_dec / array_side_dy) % array_side_dy
-		if y < 15 or y > side_max then goto worldgen_end end
-		
-		local z = math.floor(index_dec / array_side_dz)
-		if z < 15 or z > side_max then goto worldgen_end end
-		
 		local wy = y + emin.y
+
 		if wy >= BARRIER_BOTTOM and wy < MIN_HEIGHT then
 			node_data[index] = BARRIER_ID
-		elseif wy >= MIN_HEIGHT and node_data[index] == minetest.CONTENT_AIR and interpolate_cell(x, y, z) > 0.5 then
-			local px = math.floor(x + buffer_x[index] * 8)
-			local pz = math.floor(z + buffer_z[index] * 8)
-			local biome = thelimit.biome_map.get_from_map(biome_map, px, pz)
-			node_data[index] = biome.filler
+			goto fill_end
 		end
-		
-		::worldgen_end::
-	end
-
-	for index = 1, size do
-		local index_dec = index - 1
 		
 		local x = index_dec % array_side_dy
-		if x < 15 or x > side_max then goto surface_fill_end end
-		
-		local y = math.floor(index_dec / array_side_dy) % array_side_dy
-		if y < 15 or y > side_max then goto surface_fill_end end
-		
 		local z = math.floor(index_dec / array_side_dz)
-		if z < 15 or z > side_max then goto surface_fill_end end
-
-		if not thelimit.biome_map.is_filler(node_data[index]) then goto surface_fill_end end
-
-		if node_data[index + array_side_dy] == minetest.CONTENT_AIR then
-			local px = math.floor(x + buffer_x[index] * 8)
-			local pz = math.floor(z + buffer_z[index] * 8)
-			local biome = thelimit.biome_map.get_from_map(biome_map, px, pz)
-			node_data[index] = biome.surface
-		end
 		
-		::surface_fill_end::
+		if interpolate_cell(x, y, z) > 0.5 then
+			local px = math.floor(x + math.sin(y * 0.7) * 5)
+			local pz = math.floor(z + math.sin(y * 0.5) * 5)
+			local biome = thelimit.biome_map.get_from_map(biome_map, px, pz)
+			if interpolate_cell(x, y + 1, z) > 0.5 then
+				node_data[index] = biome.filler
+			else
+				node_data[index] = biome.surface
+			end
+		end
+
+		::fill_end::
 	end
 
 	for cx = 1, max_chunk do
