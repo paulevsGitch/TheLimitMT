@@ -276,33 +276,6 @@ local function fill_terrain(emin, emax)
 		size = array_side_dy * array_side_dz
 		max_chunk = math.floor(side / 16) - 1
 
-		math.randomseed(WORLD_SEED)
-
-		local distort_size = side + 1
-		distort_size = {x = distort_size, y = distort_size, z = distort_size}
-
-		distort_x = PerlinNoise({
-			offset = 0,
-			scale = 1,
-			spread = {x = 10, y = 5, z = 10},
-			seed = math.random(0, 65535),
-			octaves = 2,
-			persistence = 0.5,
-			lacunarity = 2.0,
-			flags = "defaults"
-		}, distort_size)
-
-		distort_z = PerlinNoise({
-			offset = 0,
-			scale = 1,
-			spread = {x = 10, y = 5, z = 10},
-			seed = math.random(0, 65535),
-			octaves = 2,
-			persistence = 0.5,
-			lacunarity = 2.0,
-			flags = "defaults"
-		}, distort_size)
-
 		for index = 1, size do
 			local index_dec = index - 1
 			
@@ -384,6 +357,7 @@ minetest.register_on_generated(function(minp, maxp, blockseed)
 	fill_terrain(emin, emax)
 	vm:set_data(node_data)
 	vm:set_param2_data(param2_data)
+	vm:update_liquids()
 	vm:calc_lighting()
 	vm:get_light_data(light_data)
 	thelimit.update_sky_light(emin, emax, node_data, light_data)

@@ -25,6 +25,7 @@ end
 
 thelimit.trees = {}
 thelimit.plants = {}
+thelimit.terrain = {}
 
 thelimit.can_replace = function(node_id)
 	local node_name = minetest.get_name_from_content_id(node_id)
@@ -32,16 +33,17 @@ thelimit.can_replace = function(node_id)
 	return node.buildable_to
 end
 
-dofile(path .. "/scripts/connected_textures.lua")
-dofile(path .. "/scripts/emissive_textures.lua")
+dofile(path .. "/scripts/environment/connected_textures.lua")
+--dofile(path .. "/scripts/environment/emissive_textures.lua")
 
 dofile(path .. "/scripts/pillars.lua")
 dofile(path .. "/scripts/stairs.lua")
 dofile(path .. "/scripts/nodes.lua")
 dofile(path .. "/scripts/stones.lua")
 dofile(path .. "/scripts/metals.lua")
+dofile(path .. "/scripts/void_fluid.lua")
 
-dofile(path .. "/scripts/scatter.lua")
+dofile(path .. "/scripts/worldgen/scatter.lua")
 
 dofile(path .. "/scripts/stellata/stellata_nodes.lua")
 dofile(path .. "/scripts/stellata/stellata_tree.lua")
@@ -55,8 +57,11 @@ dofile(path .. "/scripts/lucinus/lucinus_scatter.lua")
 dofile(path .. "/scripts/flocus/flocus_nodes.lua")
 dofile(path .. "/scripts/flocus/flocus_scatter.lua")
 
-dofile(path .. "/scripts/biome_map.lua")
-dofile(path .. "/scripts/biomes.lua")
-dofile(path .. "/scripts/worldgen.lua")
-dofile(path .. "/scripts/ambient_light.lua")
-dofile(path .. "/scripts/sky.lua")
+dofile(path .. "/scripts/terrain/lake.lua")
+
+dofile(path .. "/scripts/worldgen/biome_map.lua")
+dofile(path .. "/scripts/worldgen/biomes.lua")
+dofile(path .. "/scripts/worldgen/generator.lua")
+
+dofile(path .. "/scripts/environment/ambient_light.lua")
+dofile(path .. "/scripts/environment/sky.lua")

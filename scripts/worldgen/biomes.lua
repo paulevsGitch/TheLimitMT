@@ -62,6 +62,9 @@ thelimit.biome_map.register_biome({
     name = "Void Lakeside",
     surface = "thelimit:purple_hyphum",
     filler = "thelimit:vitilit",
+    features = {
+        {feature = thelimit.terrain.void_lake, count = 1, place = "heightmap"}
+    },
     particles = {
         texture = {
             name = "thelimit_purple_particle.png",
