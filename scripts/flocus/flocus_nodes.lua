@@ -13,6 +13,7 @@ minetest.register_node("thelimit:flocus", {
 	buildable_to = true,
 	walkable = false,
 	floodable = true,
+	use_texture_alpha = true,
 	connects_to = {"group:thelimit_stellata_connect"},
 	node_box = {
 		type = "connected",

@@ -22,7 +22,10 @@ local SKY = {
 		"thelimit_sky_nz.png"
 	},
 	base_color = "#171235",
-	clouds = false
+	clouds = false,
+	fog = {
+		fog_color = "#3f3786"
+	}
 }
 
 local BIOME_PARTICLES = {
