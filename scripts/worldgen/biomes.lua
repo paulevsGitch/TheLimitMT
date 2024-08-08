@@ -63,7 +63,7 @@ thelimit.biome_map.register_biome({
     surface = "thelimit:purple_hyphum",
     filler = "thelimit:vitilit",
     features = {
-        {feature = thelimit.terrain.void_lake, count = 1, place = "heightmap"}
+        {feature = thelimit.terrain.void_lake, count = 1, place = "heightmap_center"}
     },
     particles = {
         texture = {

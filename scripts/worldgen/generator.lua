@@ -226,7 +226,7 @@ local param2_data = {}
 local light_data = {}
 local biome_map = {}
 
-local side, side_max, array_side_dy, array_side_dz, size, place_index, max_chunk
+local side, side_max, array_side_dy, array_side_dz, size, place_index, max_chunk, center_chunk
 local index_table = {}
 
 local function get_node(pos)
@@ -240,6 +240,11 @@ local function set_node(pos, node, param2)
 	param2_data[index] = param2 or 0
 end
 
+local feature_context = {
+	get_node = get_node,
+	set_node = set_node
+}
+
 local function heightmap_place(feature, count, min_x, min_z, surface)
 	for i = 1, count do
 		local px = math.random(0, 15) + min_x
@@ -249,7 +254,7 @@ local function heightmap_place(feature, count, min_x, min_z, surface)
 			local index = i_xz + py * array_side_dy
 			if node_data[index] == surface then
 				place_index = index + array_side_dy
-				feature(get_node, set_node)
+				feature(feature_context)
 			end
 		end
 	end
@@ -262,7 +267,7 @@ local function volume_place(feature, count, min_x, min_z)
 		local py = math.random(16, side_max)
 		place_index = px + py * array_side_dy + pz * array_side_dz
 		if node_data[place_index] == minetest.CONTENT_AIR then
-			feature(get_node, set_node)
+			feature(feature_context)
 		end
 	end
 end
@@ -275,6 +280,7 @@ local function fill_terrain(emin, emax)
 		array_side_dz = array_side_dy * array_side_dy
 		size = array_side_dy * array_side_dz
 		max_chunk = math.floor(side / 16) - 1
+		center_chunk = math.floor((max_chunk + 1) * 0.5)
 
 		for index = 1, size do
 			local index_dec = index - 1
@@ -292,6 +298,8 @@ local function fill_terrain(emin, emax)
 			
 			::index_end::
 		end
+
+		feature_context.max_side = side_max
 	end
 	
 	fill_cell(emin, emax)
@@ -336,6 +344,10 @@ local function fill_terrain(emin, emax)
 					local type = entry.place
 					if type == "heightmap" then
 						heightmap_place(entry.feature, entry.count, min_x, min_z, biome.surface)
+					elseif type == "heightmap_center" then
+						if cx == center_chunk and cz == center_chunk then
+							heightmap_place(entry.feature, entry.count, min_x, min_z, biome.surface)
+						end
 					elseif type == "volume" then
 						volume_place(entry.feature, entry.count, min_x, min_z)
 					end
